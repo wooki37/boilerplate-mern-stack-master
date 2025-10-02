@@ -7,6 +7,8 @@ import {
 } from './types';
 import { USER_SERVER } from '../components/Config.js';
 
+axios.defaults.withCredentials = true;
+
 export function registerUser(dataToSubmit){
     const request = axios.post(`${USER_SERVER}/register`,dataToSubmit)
         .then(response => response.data);

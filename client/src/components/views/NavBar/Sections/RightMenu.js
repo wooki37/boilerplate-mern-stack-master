@@ -3,43 +3,48 @@ import React from 'react';
 import { Menu } from 'antd';
 import axios from 'axios';
 import { USER_SERVER } from '../../../Config';
-import { withRouter } from 'react-router-dom';
-import { useSelector } from "react-redux";
+import { Link, useNavigate } from 'react-router-dom';
+import { useSelector } from 'react-redux';
 
-function RightMenu(props) {
-  const user = useSelector(state => state.user)
+function RightMenu({ mode }) {
+  const navigate = useNavigate();
+  const user = useSelector((state) => state.user);
 
-  const logoutHandler = () => {
-    axios.get(`${USER_SERVER}/logout`).then(response => {
-      if (response.status === 200) {
-        props.history.push("/login");
+  const logoutHandler = async () => {
+    try {
+      const res = await axios.get(`${USER_SERVER}/logout`);
+      if (res.status === 200) {
+        navigate('/login'); // v6 내비게이션
       } else {
-        alert('Log Out Failed')
+        alert('Log Out Failed');
       }
-    });
+    } catch (e) {
+      alert('Log Out Failed');
+    }
   };
 
-  if (user.userData && !user.userData.isAuth) {
+  const isAuthed = !!user?.userData?.isAuth;
+
+  if (!isAuthed) {
     return (
-      <Menu mode={props.mode}>
-        <Menu.Item key="mail">
-          <a href="/login">Signin</a>
+      <Menu mode={mode}>
+        <Menu.Item key="signin">
+          <Link to="/login">Signin</Link>
         </Menu.Item>
-        <Menu.Item key="app">
-          <a href="/register">Signup</a>
+        <Menu.Item key="signup">
+          <Link to="/register">Signup</Link>
         </Menu.Item>
       </Menu>
-    )
-  } else {
-    return (
-      <Menu mode={props.mode}>
-        <Menu.Item key="logout">
-          <a onClick={logoutHandler}>Logout</a>
-        </Menu.Item>
-      </Menu>
-    )
+    );
   }
+
+  return (
+    <Menu mode={mode}>
+      <Menu.Item key="logout" onClick={logoutHandler}>
+        Logout
+      </Menu.Item>
+    </Menu>
+  );
 }
 
-export default withRouter(RightMenu);
-
+export default RightMenu;

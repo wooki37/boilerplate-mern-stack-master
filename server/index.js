@@ -1,60 +1,47 @@
-const express = require("express");
+// server/index.js
+require('dotenv').config();
+
+const express = require('express');
 const app = express();
-const path = require("path");
-const cors = require('cors')
+const path = require('path');
+const cors = require('cors');
+const cookieParser = require('cookie-parser');
+const mongoose = require('mongoose');
 
-const bodyParser = require("body-parser");
-const cookieParser = require("cookie-parser");
+const config = require('./config/key');
 
-const config = require("./config/key");
-
-// const mongoose = require("mongoose");
-// mongoose
-//   .connect(config.mongoURI, { useNewUrlParser: true })
-//   .then(() => console.log("DB connected"))
-//   .catch(err => console.error(err));
-
-const mongoose = require("mongoose");
-const connect = mongoose.connect(config.mongoURI,
-  {
-    useNewUrlParser: true, useUnifiedTopology: true,
-    useCreateIndex: true, useFindAndModify: false
-  })
+// --- DB 연결 (mongoose v7 권장 형식)
+mongoose.connect(config.mongoURI, {
+  dbName: process.env.MONGO_DB || 'app',
+})
   .then(() => console.log('MongoDB Connected...'))
-  .catch(err => console.log(err));
+  .catch((err) => console.error('MongoDB Connection Error:', err.message));
 
-app.use(cors())
-
-//to not get any deprecation warning or error
-//support parsing of application/x-www-form-urlencoded post data
-app.use(bodyParser.urlencoded({ extended: true }));
-//to get json data
-// support parsing of application/json type post data
-app.use(bodyParser.json());
+// --- 미들웨어
+app.use(cors({
+  origin: 'http://localhost:3000', // 프론트 주소
+  credentials: true,                 // 쿠키 인증이라면 필수
+}));
+app.use(express.urlencoded({ extended: true })); // body-parser 대체
+app.use(express.json());                          // body-parser 대체
 app.use(cookieParser());
 
+// --- API 라우트
 app.use('/api/users', require('./routes/users'));
 
+// --- 업로드 정적 경로
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-//use this to show the image you have in node js server to client (react js)
-//https://stackoverflow.com/questions/48914987/send-image-path-from-node-js-express-server-to-react-client
-app.use('/uploads', express.static('uploads'));
-
-// Serve static assets if in production
-if (process.env.NODE_ENV === "production") {
-
-  // Set static folder   
-  // All the javascript and css files will be read and served from this folder
-  app.use(express.static("client/build"));
-
-  // index.html for all page routes    html or routing and naviagtion
-  app.get("*", (req, res) => {
-    res.sendFile(path.resolve(__dirname, "../client", "build", "index.html"));
+// --- 프로덕션일 때 리액트 정적 서빙
+if (process.env.NODE_ENV === 'production') {
+  const buildPath = path.join(__dirname, '../client/build');
+  app.use(express.static(buildPath));
+  app.get('*', (_req, res) => {
+    res.sendFile(path.join(buildPath, 'index.html'));
   });
 }
 
-const port = process.env.PORT || 5000
-
+const port = process.env.PORT || 5000;
 app.listen(port, () => {
-  console.log(`Server Listening on ${port}`)
+  console.log(`Server Listening on ${port}`);
 });

@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
 import LeftMenu from './Sections/LeftMenu';
 import RightMenu from './Sections/RightMenu';
-import { Drawer, Button, Icon } from 'antd';
 import './Sections/Navbar.css';
+import { useState } from 'react';
+import { Button, Drawer } from 'antd';
+import { AlignRightOutlined } from '@ant-design/icons';
 
 function NavBar() {
   const [visible, setVisible] = useState(false)
@@ -32,7 +33,7 @@ function NavBar() {
           type="primary"
           onClick={showDrawer}
         >
-          <Icon type="align-right" />
+          <AlignRightOutlined />
         </Button>
         <Drawer
           title="Basic Drawer"
@@ -40,7 +41,7 @@ function NavBar() {
           className="menu_drawer"
           closable={false}
           onClose={onClose}
-          visible={visible}
+          open={visible}
         >
           <LeftMenu mode="inline" />
           <RightMenu mode="inline" />

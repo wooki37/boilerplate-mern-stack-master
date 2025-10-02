@@ -1,31 +1,29 @@
-import React, { Suspense } from 'react';
-import { Route, Switch } from "react-router-dom";
-import Auth from "../hoc/auth";
-// pages for this product
-import LandingPage from "./views/LandingPage/LandingPage.js";
-import LoginPage from "./views/LoginPage/LoginPage.js";
-import RegisterPage from "./views/RegisterPage/RegisterPage.js";
-import NavBar from "./views/NavBar/NavBar";
-import Footer from "./views/Footer/Footer"
+// src/components/App.js
+import { Routes, Route } from 'react-router-dom';
+import withAuth from '../hoc/auth';
+import NavBar from './views/NavBar/NavBar';
+import Footer from './views/Footer/Footer';
+import LandingPage from './views/LandingPage/LandingPage';
+import LoginPage from './views/LoginPage/LoginPage';
+import RegisterPage from './views/RegisterPage/RegisterPage';
 
-//null   Anyone Can go inside
-//true   only logged in user can go inside
-//false  logged in user can't go inside
+const LandingWithAuth = withAuth(LandingPage, null);  // 누구나 접근
+const LoginWithAuth = withAuth(LoginPage, false);     // 로그인 안 한 사람만
+const RegisterWithAuth = withAuth(RegisterPage, false);
 
-function App() {
+export default function App() {
   return (
-    <Suspense fallback={(<div>Loading...</div>)}>
+    <>
       <NavBar />
-      <div style={{ paddingTop: '69px', minHeight: 'calc(100vh - 80px)' }}>
-        <Switch>
-          <Route exact path="/" component={Auth(LandingPage, null)} />
-          <Route exact path="/login" component={Auth(LoginPage, false)} />
-          <Route exact path="/register" component={Auth(RegisterPage, false)} />
-        </Switch>
+      {/* NavBar 높이만큼 여백을 주고, 푸터 공간도 확보 */}
+      <div style={{ paddingTop: 64, minHeight: 'calc(100vh - 64px - 80px)' }}>
+        <Routes>
+          <Route path="/" element={<LandingWithAuth />} />
+          <Route path="/login" element={<LoginWithAuth />} />
+          <Route path="/register" element={<RegisterWithAuth />} />
+        </Routes>
       </div>
       <Footer />
-    </Suspense>
+    </>
   );
 }
-
-export default App;
