@@ -1,7 +1,6 @@
 const express = require('express');
 const router = express.Router();
 const { User } = require("../models/User");
-
 const { auth } = require("../middleware/auth");
 
 //=================================
@@ -21,51 +20,84 @@ router.get("/auth", auth, (req, res) => {
     });
 });
 
-router.post("/register", (req, res) => {
-
-    const user = new User(req.body);
-
-    user.save((err, doc) => {
-        if (err) return res.json({ success: false, err });
-        return res.status(200).json({
-            success: true
-        });
-    });
+router.post("/register", async (req, res) => {
+    try {
+        const user = new User(req.body);
+        await user.save();
+        return res.status(201).json({ success: true });
+    } catch (err) {
+        return res.status(400).json({ success: false, error: err.message });
+    }
 });
 
-router.post("/login", (req, res) => {
-    User.findOne({ email: req.body.email }, (err, user) => {
-        if (!user)
-            return res.json({
-                loginSuccess: false,
-                message: "Auth failed, email not found"
-            });
+// POST /api/users/login  (로그인)
+router.post('/login', async (req, res) => {
+  try {
+    const { email, password: plainPassword } = req.body;
 
-        user.comparePassword(req.body.password, (err, isMatch) => {
-            if (!isMatch)
-                return res.json({ loginSuccess: false, message: "Wrong password" });
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res
+        .status(401)
+        .json({ loginSuccess: false, message: 'Auth failed, email not found' });
+    }
 
-            user.generateToken((err, user) => {
-                if (err) return res.status(400).send(err);
-                res.cookie("w_authExp", user.tokenExp);
-                res
-                    .cookie("w_auth", user.token)
-                    .status(200)
-                    .json({
-                        loginSuccess: true, userId: user._id
-                    });
-            });
-        });
-    });
+    // comparePassword가 콜백 기반이면 래핑해서 await 사용
+    const isMatch =
+      typeof user.comparePassword === 'function' &&
+      (user.comparePassword.length >= 2
+        ? await new Promise((resolve, reject) =>
+            user.comparePassword(plainPassword, (err, ok) =>
+              err ? reject(err) : resolve(ok)
+            )
+          )
+        : await user.comparePassword(plainPassword));
+
+    if (!isMatch) {
+      return res
+        .status(401)
+        .json({ loginSuccess: false, message: 'Wrong password' });
+    }
+
+    // generateToken도 콜백 기반일 수 있으니 동일하게 처리
+    if (typeof user.generateToken === 'function' && user.generateToken.length >= 1) {
+      await new Promise((resolve, reject) =>
+        user.generateToken((err) => (err ? reject(err) : resolve()))
+      );
+    } else if (typeof user.generateToken === 'function') {
+      await user.generateToken();
+    } else {
+      // 모델 메서드가 없다면 여기서 JWT 생성/저장 로직을 직접 구현해야 함
+      throw new Error('generateToken method not found on User model');
+    }
+
+    // 쿠키 설정: x_auth / x_authExp 로 통일
+    const cookieOpts = {
+      httpOnly: true,
+      sameSite: 'lax',
+      secure: false,
+      path: '/',
+    };
+
+if (user.tokenExp) res.cookie('x_authExp', user.tokenExp, cookieOpts);
+res.cookie('x_auth', user.token, cookieOpts);
+
+return res.status(200).json({ loginSuccess: true, userId: user._id });
+  } catch (err) {
+    return res
+      .status(500)
+      .json({ loginSuccess: false, error: err.message || String(err) });
+  }
 });
 
-router.get("/logout", auth, (req, res) => {
-    User.findOneAndUpdate({ _id: req.user._id }, { token: "", tokenExp: "" }, (err, doc) => {
-        if (err) return res.json({ success: false, err });
-        return res.status(200).send({
-            success: true
-        });
-    });
+// GET /api/users/logout  (로그아웃)
+router.get('/logout', auth, async (req, res) => {
+  try {
+    await User.findByIdAndUpdate(req.user._id, { token: '', tokenExp: '' });
+    return res.status(200).json({ success: true });
+  } catch (err) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
 });
 
 module.exports = router;

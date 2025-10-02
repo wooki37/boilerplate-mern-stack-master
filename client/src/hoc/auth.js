@@ -1,44 +1,67 @@
-/* eslint-disable react-hooks/exhaustive-deps */
+// src/hoc/auth.js
 import React, { useEffect } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
 import { auth } from '../_actions/user_actions';
-import { useSelector, useDispatch } from "react-redux";
 
-export default function (SpecificComponent, option, adminRoute = null) {
-    function AuthenticationCheck(props) {
+function withAuth(SpecificComponent, option, adminRoute = null) {
+  // option:
+  //   null  => 누구나 접근 가능
+  //   true  => 로그인한 유저만 접근 가능
+  //   false => 로그인한 유저는 접근 불가(예: 로그인/회원가입 페이지)
 
-        let user = useSelector(state => state.user);
-        const dispatch = useDispatch();
+  function AuthenticationCheck(props) {
+    const user = useSelector((state) => state.user);
+    const dispatch = useDispatch();
+    const navigate = useNavigate();
 
-        useEffect(() => {
-            //To know my current status, send Auth request 
-            dispatch(auth()).then(response => {
-                //Not Loggined in Status 
-                if (!response.payload.isAuth) {
-                    if (option) {
-                        props.history.push('/login')
-                    }
-                    //Loggined in Status 
-                } else {
-                    //supposed to be Admin page, but not admin person wants to go inside
-                    if (adminRoute && !response.payload.isAdmin) {
-                        props.history.push('/')
-                    }
-                    //Logged in Status, but Try to go into log in page 
-                    else {
-                        if (option === false) {
-                            props.history.push('/')
-                        }
-                    }
-                }
-            })
+    useEffect(() => {
+      let mounted = true;
 
-        }, [])
+      (async () => {
+        try {
+          const { payload } = await dispatch(auth());
+          if (!mounted) return;
 
-        return (
-            <SpecificComponent {...props} user={user} />
-        )
-    }
-    return AuthenticationCheck
+          const isAuth = !!payload?.isAuth;
+          const isAdmin = !!payload?.isAdmin;
+
+          // 1) 로그인 필수 페이지인데 비로그인
+          if (option === true && !isAuth) {
+            navigate('/login', { replace: true });
+            return;
+          }
+
+          // 2) 관리자 전용인데 관리자가 아님
+          if (adminRoute === true && !isAdmin) {
+            navigate('/', { replace: true });
+            return;
+          }
+
+          // 3) 비로그인 전용(로그인/회원가입)인데 로그인 상태
+          if (option === false && isAuth) {
+            navigate('/', { replace: true });
+            return;
+          }
+        } catch (err) {
+          // auth 요청 실패(401 등)
+          if (option === true) {
+            // 로그인 필수면 로그인으로
+            navigate('/login', { replace: true });
+          }
+          // 공개 페이지나 비로그인 전용은 조용히 통과
+        }
+      })();
+
+      return () => {
+        mounted = false;
+      };
+    }, [dispatch, navigate]);
+
+    return <SpecificComponent {...props} user={user} />;
+  }
+
+  return AuthenticationCheck;
 }
 
-
+export default withAuth;

@@ -2,91 +2,76 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const saltRounds = 10;
 const jwt = require('jsonwebtoken');
-const moment = require("moment");
 
 const userSchema = mongoose.Schema({
     name: {
-        type:String,
-        maxlength:50
+        type: String,
+        maxlength: 50
     },
     email: {
-        type:String,
-        trim:true,
-        unique: 1 
+        type: String,
+        trim: true,
+        unique: 1
     },
     password: {
         type: String,
-        minglength: 5
+        minlength: 5
     },
     lastname: {
-        type:String,
+        type: String,
         maxlength: 50
     },
-    role : {
-        type:Number,
-        default: 0 
+    role: {
+        type: Number,
+        default: 0
     },
     image: String,
-    token : {
+    token: {
         type: String,
     },
-    tokenExp :{
+    tokenExp: {
         type: Number
     }
 })
 
 
-userSchema.pre('save', function( next ) {
-    var user = this;
-    
-    if(user.isModified('password')){    
-        // console.log('password changed')
-        bcrypt.genSalt(saltRounds, function(err, salt){
-            if(err) return next(err);
-    
-            bcrypt.hash(user.password, salt, function(err, hash){
-                if(err) return next(err);
-                user.password = hash 
-                next()
-            })
-        })
-    } else {
-        next()
-    }
+// 비번 해시 (pre save)
+userSchema.pre('save', async function(next) {
+  if (!this.isModified('password')) return next();
+  try {
+    const salt = await bcrypt.genSalt(saltRounds);
+    this.password = await bcrypt.hash(this.password, salt);
+    next();
+  } catch (err) {
+    next(err);
+  }
 });
 
-userSchema.methods.comparePassword = function(plainPassword,cb){
-    bcrypt.compare(plainPassword, this.password, function(err, isMatch){
-        if (err) return cb(err);
-        cb(null, isMatch)
-    })
-}
+// 비번 비교
+userSchema.methods.comparePassword = function(plain) {
+  return bcrypt.compare(plain, this.password);
+};
 
-userSchema.methods.generateToken = function(cb) {
-    var user = this;
-    console.log('user',user)
-    console.log('userSchema', userSchema)
-    var token =  jwt.sign(user._id.toHexString(),'secret')
-    var oneHour = moment().add(1, 'hour').valueOf();
+// 토큰 생성
+userSchema.methods.generateToken = async function() {
+  const token = jwt.sign(
+    { _id: this._id.toHexString() },
+    process.env.JWT_SECRET,
+    { expiresIn: '1h' }
+  );
+  this.token = token;
+  this.tokenExp = Date.now() + 60 * 60 * 1000;
+  await this.save();
+  return this;
+};
 
-    user.tokenExp = oneHour;
-    user.token = token;
-    user.save(function (err, user){
-        if(err) return cb(err)
-        cb(null, user);
-    })
-}
+// 토큰으로 찾기
+userSchema.statics.findByToken = async function(token) {
+  const decoded = jwt.verify(token, process.env.JWT_SECRET);
+  const id = decoded?._id ?? decoded;
+  return this.findOne({ _id: id, token });
+};
 
-userSchema.statics.findByToken = function (token, cb) {
-    var user = this;
-
-    jwt.verify(token,'secret',function(err, decode){
-        user.findOne({"_id":decode, "token":token}, function(err, user){
-            if(err) return cb(err);
-            cb(null, user);
-        })
-    })
-}
 
 const User = mongoose.model('User', userSchema);
 
