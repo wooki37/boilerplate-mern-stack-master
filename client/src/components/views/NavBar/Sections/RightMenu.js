@@ -25,25 +25,34 @@ function RightMenu({ mode }) {
 
   const isAuthed = !!user?.userData?.isAuth;
 
-  if (!isAuthed) {
-    return (
-      <Menu mode={mode}>
-        <Menu.Item key="signin">
-          <Link to="/login">Signin</Link>
-        </Menu.Item>
-        <Menu.Item key="signup">
-          <Link to="/register">Signup</Link>
-        </Menu.Item>
-      </Menu>
-    );
-  }
+ // --- 비로그인 메뉴 아이템 ---
+  const guestItems = [
+    {
+      key: 'signin',
+      label: <Link to="/login">Signin</Link>,
+    },
+    {
+      key: 'signup',
+      label: <Link to="/register">Signup</Link>,
+    },
+  ];
+
+  // --- 로그인 메뉴 아이템 ---
+  const authedItems = [
+    {
+      key: 'logout',
+      label: 'Logout',
+      onClick: logoutHandler, // 항목 클릭 시 로그아웃 실행
+      // danger: true, // (선택) 빨간색 항목으로 표시하고 싶으면
+    },
+  ];
 
   return (
-    <Menu mode={mode}>
-      <Menu.Item key="logout" onClick={logoutHandler}>
-        Logout
-      </Menu.Item>
-    </Menu>
+    <Menu
+      mode={mode}
+      items={isAuthed ? authedItems : guestItems}
+      selectable={false}
+    />
   );
 }
 
