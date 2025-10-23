@@ -8,29 +8,30 @@ const { auth } = require("../middleware/auth");
 //=================================
 
 router.get("/auth", auth, (req, res) => {
-    res.status(200).json({
-        _id: req.user._id,
-        isAdmin: req.user.role === 0 ? false : true,
-        isAuth: true,
-        email: req.user.email,
-        name: req.user.name,
-        lastname: req.user.lastname,
-        role: req.user.role,
-        image: req.user.image,
-    });
+  res.status(200).json({
+    _id: req.user._id,
+    isAdmin: req.user.role === 0 ? false : true,
+    isAuth: true,
+    email: req.user.email,
+    name: req.user.name,
+    lastname: req.user.lastname,
+    role: req.user.role,
+    image: req.user.image,
+  });
 });
 
 router.post("/register", async (req, res) => {
-    try {
-        const user = new User(req.body);
-        await user.save();
-        return res.status(201).json({ success: true });
-    } catch (err) {
-        return res.status(400).json({ success: false, error: err.message });
-    }
+  try {
+    const user = new User(req.body);
+    await user.save();
+    return res.status(201).json({ success: true });
+  } catch (err) {
+    return res.status(400).json({ success: false, error: err.message });
+  }
 });
 
 // POST /api/users/login  (로그인)
+// server/routes/users.js (로그인 핸들러)
 router.post('/login', async (req, res) => {
   try {
     const { email, password: plainPassword } = req.body;
@@ -42,7 +43,7 @@ router.post('/login', async (req, res) => {
         .json({ loginSuccess: false, message: 'Auth failed, email not found' });
     }
 
-    // comparePassword가 콜백 기반이면 래핑해서 await 사용
+    // comparePassword 콜백/프로미스 모두 지원
     const isMatch =
       typeof user.comparePassword === 'function' &&
       (user.comparePassword.length >= 2
@@ -53,13 +54,16 @@ router.post('/login', async (req, res) => {
           )
         : await user.comparePassword(plainPassword));
 
+    // ✅ 이제부터 isMatch 참조 가능
+    // console.log('[login] isMatch=', isMatch);
+
     if (!isMatch) {
       return res
         .status(401)
         .json({ loginSuccess: false, message: 'Wrong password' });
     }
 
-    // generateToken도 콜백 기반일 수 있으니 동일하게 처리
+    // generateToken 콜백/프로미스 모두 지원
     if (typeof user.generateToken === 'function' && user.generateToken.length >= 1) {
       await new Promise((resolve, reject) =>
         user.generateToken((err) => (err ? reject(err) : resolve()))
@@ -67,11 +71,9 @@ router.post('/login', async (req, res) => {
     } else if (typeof user.generateToken === 'function') {
       await user.generateToken();
     } else {
-      // 모델 메서드가 없다면 여기서 JWT 생성/저장 로직을 직접 구현해야 함
       throw new Error('generateToken method not found on User model');
     }
 
-    // 쿠키 설정: x_auth / x_authExp 로 통일
     const cookieOpts = {
       httpOnly: true,
       sameSite: 'lax',
@@ -79,16 +81,17 @@ router.post('/login', async (req, res) => {
       path: '/',
     };
 
-if (user.tokenExp) res.cookie('x_authExp', user.tokenExp, cookieOpts);
-res.cookie('x_auth', user.token, cookieOpts);
+    if (user.tokenExp) res.cookie('x_authExp', user.tokenExp, cookieOpts);
+    res.cookie('x_auth', user.token, cookieOpts);
 
-return res.status(200).json({ loginSuccess: true, userId: user._id });
+    return res.status(200).json({ loginSuccess: true, userId: user._id });
   } catch (err) {
     return res
       .status(500)
       .json({ loginSuccess: false, error: err.message || String(err) });
   }
 });
+
 
 // GET /api/users/logout  (로그아웃)
 router.get('/logout', auth, async (req, res) => {

@@ -48,28 +48,38 @@ userSchema.pre('save', async function(next) {
 });
 
 // 비번 비교
-userSchema.methods.comparePassword = function(plain) {
+userSchema.methods.comparePassword = async function(plain) {
   return bcrypt.compare(plain, this.password);
 };
 
 // 토큰 생성
 userSchema.methods.generateToken = async function() {
-  const token = jwt.sign(
-    { _id: this._id.toHexString() },
-    process.env.JWT_SECRET,
-    { expiresIn: '1h' }
-  );
+  const secret = process.env.JWT_SECRET;
+  if (!secret) throw new Error('JWT_SECRET is not set');
+
+  const payload = { _id: this._id.toHexString() };
+  const token = jwt.sign(payload, secret); // 옵션으로 expiresIn 사용 가능
+
   this.token = token;
-  this.tokenExp = Date.now() + 60 * 60 * 1000;
+  // this.tokenExp = Date.now() + 1000 * 60 * 60 * 24; // 선택
   await this.save();
-  return this;
+  return token;
 };
 
 // 토큰으로 찾기
-userSchema.statics.findByToken = async function(token) {
-  const decoded = jwt.verify(token, process.env.JWT_SECRET);
-  const id = decoded?._id ?? decoded;
-  return this.findOne({ _id: id, token });
+userSchema.statics.findByToken = async function(token, cb) {
+  try {
+    const secret = process.env.JWT_SECRET;
+    if (!secret) throw new Error('JWT_SECRET is not set');
+
+    const decoded = jwt.verify(token, secret);
+    const user = await this.findOne({ _id: decoded._id, token });
+    if (cb) return cb(null, user);
+    return user;
+  } catch (err) {
+    if (cb) return cb(err);
+    throw err;
+  }
 };
 
 
