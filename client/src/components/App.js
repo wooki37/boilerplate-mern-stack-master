@@ -7,11 +7,13 @@ import LandingPage from './views/LandingPage/LandingPage';
 import LoginPage from './views/LoginPage/LoginPage';
 import RegisterPage from './views/RegisterPage/RegisterPage';
 import MovieDetail from './views/MovieDetail/MovieDetail';
+import FavoritePage from './views/FavoritePage/FavoritePage';
 
 const LandingWithAuth = withAuth(LandingPage, null);  // 누구나 접근
 const LoginWithAuth = withAuth(LoginPage, false);     // 로그인 안 한 사람만
 const RegisterWithAuth = withAuth(RegisterPage, false);
 const MovieDetailWithAuth = withAuth(MovieDetail, null); // 누구나 접근
+const FavoritePageWithAuth = withAuth(FavoritePage, true); // 로그인한 사용자만 접근
 
 export default function App() {
   return (
@@ -24,6 +26,7 @@ export default function App() {
           <Route path="/login" element={<LoginWithAuth />} />
           <Route path="/register" element={<RegisterWithAuth />} />
           <Route path="/movie/:movieId" element={<MovieDetailWithAuth />} />
+          <Route path="/favorite" element={<FavoritePageWithAuth />} />
         </Routes>
       </div>
       <Footer />

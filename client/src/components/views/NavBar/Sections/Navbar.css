@@ -1,21 +1,29 @@
-
 .menu {
   padding: 0 20px;
   border-bottom: solid 1px #e8e8e8;
-  overflow: auto;
+  overflow: visible;
   box-shadow: 0 0 30px #f3f1f1;
   background-color: white;
 }
 
 .menu__logo {
+  flex: 0 0 auto;
+  /* 고정 폭/내용 */
   width: 150px;
-  float: left;
 }
 
 .menu__logo a {
   display: inline-block;
   font-size: 20px;
   padding: 19px 20px;
+}
+
+.menu__container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .menu__container .ant-menu-item {
@@ -36,19 +44,26 @@
 }
 
 .menu__container .menu_left {
-  float: left;
+  flex: 1 1 auto;
+  /* 남는 가로공간을 모두 사용 */
+  min-width: 0;
+  /* 내용이 길어도 줄어들 수 있게 */
+  overflow: hidden;
+  /* 레이아웃 안전장치(선택) */
 }
 
-.menu__container .menu_rigth {
-  float: right;
+.menu__container .menu_right {
+  flex: 0 0 auto;
+  /* 우측 메뉴는 내용만큼만 */
 }
 
 .menu__mobile-button {
-  float: right;
+  margin-left: auto;;
   height: 32px;
   padding: 6px;
   margin-top: 8px;
-  display: none !important; /* use of important to overwrite ant-btn */
+  display: none !important;
+  /* use of important to overwrite ant-btn */
   background: #3e91f7;
 }
 
@@ -67,8 +82,10 @@
   }
 
   .menu_left,
-  .menu_rigth {
-    display: none;
+  .menu_right {
+    float: none;
+    display: flex;
+    align-items: center;
   }
 
   .menu__logo a {

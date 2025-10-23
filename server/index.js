@@ -1,9 +1,9 @@
 // server/index.js
-require('dotenv').config();
+const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '.env') });
 
 const express = require('express');
 const app = express();
-const path = require('path');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
 const mongoose = require('mongoose');
@@ -28,6 +28,8 @@ app.use(cookieParser());
 
 // --- API 라우트
 app.use('/api/users', require('./routes/users'));
+
+app.use('/api/favorite', require('./routes/favorite'));
 
 // --- 업로드 정적 경로
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));

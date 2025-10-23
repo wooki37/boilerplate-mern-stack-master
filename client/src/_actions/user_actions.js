@@ -7,7 +7,7 @@ import {
 } from './types';
 import { USER_SERVER } from '../components/Config.js';
 
-// axios.defaults.withCredentials = false;
+// axios.defaults.withCredentials = true;
 
 const authApi = axios.create({
     baseURL: USER_SERVER,

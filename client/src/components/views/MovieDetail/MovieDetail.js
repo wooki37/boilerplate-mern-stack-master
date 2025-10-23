@@ -4,6 +4,7 @@ import { useParams } from 'react-router-dom';
 import { API_URL, IMAGE_BASE_URL } from '../../Config';
 import MainImage from '../LandingPage/Sections/MainImage';
 import MovieInfo from './Sections/MovieInfo';
+import Favorite from './Sections/Favorite';
 
 const BACKDROP_SIZE = 'w1280';
 const POSTER_SIZE = 'w500';
@@ -84,6 +85,11 @@ export default function MovieDetail() {
 
             {/* Body */}
             <div style={{ width: '85%', margin: '1rem auto' }}>
+
+                <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                    <Favorite movieInfo={movie} movieId={movieId} userFrom={localStorage.getItem('userId')} />
+                </div>
+
                 {/* Movie Info */}
                 <MovieInfo movie={movie} />
 
